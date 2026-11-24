@@ -6,6 +6,8 @@ const { query } = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { validate } = require('../middleware/validate');
 const { authenticate } = require('../middleware/auth');
+const { loginLimiter, registerLimiter } = require('../middleware/rateLimit');
+const { assertNotReservedEmail } = require('../middleware/demo');
 const { unauthorized, conflict, badRequest } = require('../utils/httpError');
 
 const router = express.Router();
@@ -29,6 +31,7 @@ const publicUser = (u) => ({
  */
 router.post(
   '/register',
+  registerLimiter,
   validate({
     fullName: { type: 'string', required: true, min: 2, max: 100 },
     email: { type: 'email', required: true },
@@ -37,6 +40,7 @@ router.post(
   }),
   asyncHandler(async (req, res) => {
     const { fullName, email, password, productionLineId } = req.body;
+    assertNotReservedEmail(email);
 
     const lines = await query('SELECT id FROM production_lines WHERE id = ?', [productionLineId]);
     if (!lines.length) throw badRequest('Validation failed', [{ field: 'productionLineId', message: 'Production line does not exist' }]);
@@ -59,6 +63,7 @@ router.post(
 /** POST /api/auth/login: same 401 message for unknown email and wrong password, so emails cannot be probed. */
 router.post(
   '/login',
+  loginLimiter,
   validate({
     email: { type: 'email', required: true },
     password: { type: 'string', required: true, min: 1, max: 200 },

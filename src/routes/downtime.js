@@ -3,6 +3,7 @@ const { query } = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { authenticate, authorize, isSupervisor } = require('../middleware/auth');
 const { validate, validateIdParam } = require('../middleware/validate');
+const { protectSeededRecord } = require('../middleware/demo');
 const { notFound, forbidden, conflict, badRequest } = require('../utils/httpError');
 const { machineScope, getAccessibleMachine } = require('../utils/scope');
 
@@ -130,6 +131,7 @@ router.delete(
   '/:id',
   authorize('supervisor'),
   validateIdParam('id'),
+  protectSeededRecord('downtime_logs', 'downtime log'),
   asyncHandler(async (req, res) => {
     const result = await query('DELETE FROM downtime_logs WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) throw notFound('Downtime log');

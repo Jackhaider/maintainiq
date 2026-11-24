@@ -6,6 +6,7 @@ services:
     name: maintainiq
     runtime: node
     plan: free
+    region: frankfurt
     buildCommand: npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /api/health
@@ -29,4 +30,10 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: DB_NAME
+        sync: false
+      # Public demo: protects the seeded demo data and shows the demo password on the login page.
+      - key: DEMO_MODE
+        value: "true"
+      # Deliberately public, but entered in the dashboard so it matches the nightly reset's password.
+      - key: DEMO_PASSWORD
         sync: false

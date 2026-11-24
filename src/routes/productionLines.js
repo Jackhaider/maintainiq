@@ -3,6 +3,7 @@ const { query } = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, validateIdParam } = require('../middleware/validate');
+const { protectSeededRecord } = require('../middleware/demo');
 const { notFound } = require('../utils/httpError');
 
 const router = express.Router();
@@ -79,6 +80,7 @@ router.delete(
   '/:id',
   authorize('supervisor'),
   validateIdParam('id'),
+  protectSeededRecord('production_lines', 'production line'),
   asyncHandler(async (req, res) => {
     const result = await query('DELETE FROM production_lines WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) throw notFound('Production line');

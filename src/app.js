@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const config = require('./config/env');
 const { pool } = require('./config/db');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+const { publicDemoInfo } = require('./middleware/demo');
 
 const app = express();
 
@@ -74,6 +75,11 @@ app.get('/api/public/production-lines', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+/** Public demo details for the login page: { enabled: false } unless DEMO_MODE=true. */
+app.get('/api/public/demo', (req, res) => {
+  res.json({ data: publicDemoInfo() });
 });
 
 app.use('/api', notFoundHandler);

@@ -35,6 +35,7 @@ CREATE TABLE production_lines (
   location   VARCHAR(100) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_demo_seed BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE for rows loaded by db:setup (protected in DEMO_MODE)
   CONSTRAINT uq_production_lines_code UNIQUE (code)
 ) ENGINE = InnoDB;
 
@@ -49,6 +50,7 @@ CREATE TABLE users (
   is_active          BOOLEAN      NOT NULL DEFAULT TRUE,
   created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_demo_seed       BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE for rows loaded by db:setup (protected in DEMO_MODE)
   CONSTRAINT uq_users_email UNIQUE (email),
   CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles (id),
   CONSTRAINT fk_users_line FOREIGN KEY (production_line_id)
@@ -70,6 +72,7 @@ CREATE TABLE machines (
   installed_on       DATE NULL,
   created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_demo_seed       BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE for rows loaded by db:setup (protected in DEMO_MODE)
   CONSTRAINT uq_machines_asset_tag UNIQUE (asset_tag),
   CONSTRAINT chk_machines_power CHECK (rated_power_kw > 0),
   CONSTRAINT fk_machines_line FOREIGN KEY (production_line_id)
@@ -92,6 +95,7 @@ CREATE TABLE work_orders (
   closed_at    DATETIME NULL,
   created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_demo_seed BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE for rows loaded by db:setup (protected in DEMO_MODE)
   CONSTRAINT fk_work_orders_machine FOREIGN KEY (machine_id)
     REFERENCES machines (id) ON DELETE RESTRICT,
   CONSTRAINT fk_work_orders_requested_by FOREIGN KEY (requested_by) REFERENCES users (id),
@@ -117,6 +121,7 @@ CREATE TABLE downtime_logs (
   ended_at        DATETIME NULL,                    -- NULL while the machine is still down
   created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_demo_seed    BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE for rows loaded by db:setup (protected in DEMO_MODE)
   CONSTRAINT chk_downtime_period CHECK (ended_at IS NULL OR ended_at > started_at),
   CONSTRAINT fk_downtime_machine FOREIGN KEY (machine_id)
     REFERENCES machines (id) ON DELETE RESTRICT,
@@ -136,6 +141,7 @@ CREATE TABLE energy_readings (
   kwh         DECIMAL(10,2) NOT NULL,
   created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_demo_seed BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE for rows loaded by db:setup (protected in DEMO_MODE)
   CONSTRAINT uq_energy_machine_date UNIQUE (machine_id, reading_date),  -- one reading per machine per day
   CONSTRAINT chk_energy_kwh CHECK (kwh >= 0),
   CONSTRAINT fk_energy_machine FOREIGN KEY (machine_id)
