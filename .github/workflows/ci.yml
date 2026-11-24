@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Jest + Supertest against MySQL 8
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: maintainiq_test
+          MYSQL_USER: maintainiq
+          MYSQL_PASSWORD: ci-password
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: maintainiq
+      DB_PASSWORD: ci-password
+      DB_NAME_TEST: maintainiq_test
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      SEED_PASSWORD: CiPassword123!
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Syntax-check the browser modules
+        run: for f in public/js/*.js public/js/views/*.js; do cp "$f" /tmp/check.mjs && node --check /tmp/check.mjs || exit 1; done
+      - run: npm run test:coverage
