@@ -26,9 +26,11 @@ Base URL: `/api`. JSON in, JSON out. Import [`postman/MaintainIQ.postman_collect
 | 400 `INVALID_JSON` | Body is not valid JSON |
 | 401 `UNAUTHORIZED` | Missing, malformed, forged or expired token; deactivated account; wrong login |
 | 403 `FORBIDDEN` | Logged in, but the role or production line does not allow it |
+| 403 `DEMO_PROTECTED` | Public demo only (`DEMO_MODE=true`): changing a seeded demo account, deleting a seeded record, or using the reserved `@maintainiq.demo` email domain |
 | 404 `NOT_FOUND` | Record or route does not exist |
 | 409 `CONFLICT` | Duplicate (email, asset tag, reading for the same day), record still referenced, invalid state change (closing a closed order) |
 | 413 | Body larger than 100 kB |
+| 429 `RATE_LIMITED` | Too many failed logins (10 per 15 min) or registrations (10 per hour) from one IP. `RateLimit` and `RateLimit-Policy` headers show the limit |
 | 500 `INTERNAL_ERROR` | Unexpected; details are logged on the server, not sent in production |
 
 Unknown fields in a body are ignored (a client cannot set `role_id`, `closed_at` or similar by adding them).
@@ -41,9 +43,10 @@ Unknown fields in a body are ignored (a client cannot set `role_id`, `closed_at`
 |---|---|---|---|
 | GET | `/health` | public | `{status, database}`, 503 if MySQL is unreachable |
 | GET | `/public/production-lines` | public | id, code, name only (for the sign-up form) |
+| GET | `/public/demo` | public | `{ enabled: false }`, or with `DEMO_MODE=true`: `{ enabled, password, accounts }` for the login page (the demo password is deliberately public) |
 | **Auth** | | | |
-| POST | `/auth/register` | public | `fullName, email, password (8–72), productionLineId` → always an **operator** |
-| POST | `/auth/login` | public | `email, password` → `{ token, user }`; same 401 message for unknown email and wrong password |
+| POST | `/auth/register` | public | `fullName, email, password (8–72), productionLineId` → always an **operator**. Rate limited: 10 attempts per IP per hour |
+| POST | `/auth/login` | public | `email, password` → `{ token, user }`; same 401 message for unknown email and wrong password. Rate limited: 10 **failed** attempts per IP per 15 min (successful logins are not counted) |
 | GET | `/auth/me` | any | current user |
 | **Machines** | | | |
 | GET | `/machines?status=&lineId=&search=` | any (scoped) | includes line name and open work order count |

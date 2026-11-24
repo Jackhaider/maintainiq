@@ -90,6 +90,8 @@ erDiagram
 
 Every table also has `created_at` and `updated_at` (`ON UPDATE CURRENT_TIMESTAMP`).
 
+`production_lines`, `users`, `machines`, `work_orders`, `downtime_logs` and `energy_readings` also have `is_demo_seed` (default `FALSE`). `npm run db:setup` sets it to `TRUE` on every row it loads. In the public demo (`DEMO_MODE=true`) the API uses it to stop visitors from changing the seeded demo accounts or deleting seeded records. Rows that visitors create are never flagged, so they can be edited and deleted normally.
+
 ## Why it is normalised this way
 
 | Decision | Reason |
@@ -147,3 +149,5 @@ All in [`src/routes/reports.js`](../src/routes/reports.js), each run live agains
 ## Seed data
 
 `npm run db:setup` loads: 2 roles, 4 production lines, 6 users, 12 machines, 16 work orders, 97 downtime events (one still ongoing), 2,160 energy readings (180 days × 12 machines) and 11 notes. Dates are relative to the day you run it, so the dashboard always shows recent activity. All names and companies are fictional.
+
+The public demo reloads this same dataset every night (see [`.github/workflows/demo-reset.yml`](../.github/workflows/demo-reset.yml)). Because dates are relative, a reset dataset is identical except that it is anchored to the new day. `tests/demoMode.test.js` checks this.

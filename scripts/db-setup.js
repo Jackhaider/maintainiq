@@ -13,6 +13,9 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+// Tables whose seeded rows are marked is_demo_seed (kept in sync with src/middleware/demo.js by tests).
+const SEEDED_TABLES = ['production_lines', 'users', 'machines', 'work_orders', 'downtime_logs', 'energy_readings'];
+
 async function setupDatabase({ database, silent = false } = {}) {
   const isTest = process.env.NODE_ENV === 'test';
   const dbName = database || (isTest ? process.env.DB_NAME_TEST || 'maintainiq_test' : process.env.DB_NAME || 'maintainiq');
@@ -44,6 +47,12 @@ async function setupDatabase({ database, silent = false } = {}) {
     const hash = await bcrypt.hash(seedPassword, isTest ? 4 : 10);
     await conn.query('UPDATE users SET password_hash = ?', [hash]);
 
+    // Mark every seeded row so DEMO_MODE can protect the baseline demo data (src/middleware/demo.js).
+    // Setting updated_at to itself keeps the seeded timestamps unchanged.
+    for (const table of SEEDED_TABLES) {
+      await conn.query(`UPDATE ${table} SET is_demo_seed = TRUE, updated_at = updated_at`);
+    }
+
     if (!silent) {
       const [[counts]] = await conn.query(`
         SELECT (SELECT COUNT(*) FROM roles) AS roles, (SELECT COUNT(*) FROM production_lines) AS production_lines,
@@ -65,4 +74,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { setupDatabase };
+module.exports = { setupDatabase, SEEDED_TABLES };

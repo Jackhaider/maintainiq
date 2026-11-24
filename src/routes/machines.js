@@ -3,6 +3,7 @@ const { query } = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, validateIdParam } = require('../middleware/validate');
+const { protectSeededRecord } = require('../middleware/demo');
 const { notFound } = require('../utils/httpError');
 const { machineScope, getAccessibleMachine } = require('../utils/scope');
 
@@ -132,6 +133,7 @@ router.delete(
   '/:id',
   authorize('supervisor'),
   validateIdParam('id'),
+  protectSeededRecord('machines', 'machine'),
   asyncHandler(async (req, res) => {
     const result = await query('DELETE FROM machines WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) throw notFound('Machine');

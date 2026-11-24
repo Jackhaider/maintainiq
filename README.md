@@ -7,6 +7,15 @@ A full-stack web app for a manufacturing plant: operators raise maintenance requ
 ![Supervisor dashboard](docs/screenshots/dashboard.png)
 
 > **Live demo:** not deployed yet (see [Deployment](#deployment)).
+>
+> **Demo accounts** (shown on the login page too). These are synthetic accounts in a sandbox that resets every night:
+>
+> | Role | Email | Password |
+> |---|---|---|
+> | Supervisor (all lines) | `supervisor@maintainiq.demo` | `MaintainIQ-Demo-2026` |
+> | Operator (Press Shop) | `operator@maintainiq.demo` | `MaintainIQ-Demo-2026` |
+>
+> The demo accounts and the seeded records are protected. Anything you create yourself (work orders, machines, users and so on) can be edited and deleted.
 
 ---
 
@@ -126,13 +135,19 @@ Demo logins (password = your `SEED_PASSWORD`): `supervisor@maintainiq.demo` (all
 | `JWT_SECRET` | Token signing key: at least 32 random characters in production |
 | `JWT_EXPIRES_IN` | Token lifetime, e.g. `8h` |
 | `SEED_PASSWORD` | Password given to the demo users by `npm run db:setup` |
+| `ALLOW_DB_RESET` | `true` lets `db:setup` run with `NODE_ENV=production` (first deploy and nightly reset only) |
 | `CORS_ORIGINS` | Only needed if the frontend is hosted on another domain |
+| `DEMO_MODE` | `true` for the public demo: protects seeded accounts and records, reserves `@maintainiq.demo` |
+| `DEMO_PASSWORD` | Public demo password shown on the login page; must equal the `SEED_PASSWORD` used to seed |
+| `AUTH_LOGIN_MAX`, `AUTH_REGISTER_MAX` | Optional: failed logins per 15 min and registrations per hour per IP (default 10 each) |
+
+In production the server refuses to start if `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` or `JWT_SECRET` is missing, if `JWT_SECRET` is shorter than 32 characters, or if `DEMO_MODE=true` has no `DEMO_PASSWORD`.
 
 `.env` is git-ignored; only `.env.example` (no real values) is committed.
 
 ## API
 
-47 endpoints: 45 across 9 routers, plus `/api/health` and the public production-line list. Full reference with status codes: **[docs/API.md](docs/API.md)**.
+48 endpoints: 45 across 9 routers, plus `/api/health`, the public production-line list and the public demo info. Full reference with status codes: **[docs/API.md](docs/API.md)**.
 
 ```http
 POST /api/auth/login              → { data: { token, user } }
@@ -153,9 +168,9 @@ npm run test:coverage    # with coverage report
 Latest local run (MySQL 8.0.45, Node 22):
 
 ```
-Test Suites: 6 passed, 6 total
-Tests:       112 passed, 112 total
-Coverage:    87.66% statements · 74.39% branches · 89.47% functions · 91.49% lines
+Test Suites: 10 passed, 10 total
+Tests:       165 passed, 165 total
+Coverage:    89.27% statements · 79.37% branches · 91.58% functions · 92.74% lines
 ```
 
 | Suite | Covers |
@@ -166,6 +181,10 @@ Coverage:    87.66% statements · 74.39% branches · 89.47% functions · 91.49% 
 | `downtimeEnergy.test.js` | duration maths, date validation, ongoing stoppages, unique daily reading, GROUP BY totals |
 | `reports.test.js` | 401/403/200 for every report, and **each report checked against independent SQL** |
 | `usersLinesApp.test.js` | user management, role changes, health check, JSON 404, security headers, 413 body limit |
+| `rateLimit.test.js` | 429 after too many failed logins (even with the right password), successful logins not counted, registration limit, other routes unaffected |
+| `demoMode.test.js` | demo accounts cannot be deactivated, demoted, promoted or moved; seeded records cannot be deleted but visitor records can; reserved demo email domain; public demo info; **nightly reset restores the seed dataset** |
+| `demoModeOff.test.js` | with `DEMO_MODE` off, none of the demo restrictions apply |
+| `config.test.js` | production refuses to start with missing database settings, a short JWT secret or a missing demo password |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the same suite against a MySQL 8 service container on every push and pull request.
 
@@ -197,9 +216,25 @@ Screenshots are produced from the running app by `scripts/screenshots.js` (headl
 
 ## Deployment
 
-Planned: **Render** (free Node web service, HTTPS) for the Express app, which also serves the frontend, so there's one origin and no CORS configuration. Render does not offer MySQL, so the database will be on a managed MySQL provider with TLS (`DB_SSL=true`). [`render.yaml`](render.yaml) describes the service; secrets are entered in the Render dashboard. The health check is `/api/health`, which also pings the database.
+Planned, all on free tiers:
 
-First deploy: set `ALLOW_DB_RESET=true` once to run `npm run db:setup` against the empty hosted database, then remove it.
+| Part | Service |
+|---|---|
+| App (API and frontend, one origin, no CORS) | **Render** free web service in **Frankfurt**, described by [`render.yaml`](render.yaml). Secrets are entered in the Render dashboard. The health check is `/api/health`, which also pings the database. |
+| MySQL | **TiDB Cloud Starter** (MySQL-compatible, TLS, `DB_SSL=true`) in AWS Frankfurt (`eu-central-1`) |
+| Nightly demo reset | **GitHub Actions**: [`demo-reset.yml`](.github/workflows/demo-reset.yml) reloads the seed data at 02:30 UTC. It is off until the `DEMO_RESET_ENABLED` variable is set. |
+
+Free-tier behaviour: the Render service sleeps after 15 minutes without traffic, so the first request after that takes up to about a minute.
+
+**Public demo protection** (`DEMO_MODE=true`):
+- At most 10 failed logins per 15 minutes and 10 registrations per hour per IP.
+- Seeded demo accounts can't be changed, and seeded records can't be deleted.
+- The `@maintainiq.demo` email domain is reserved.
+- Seeded data is reloaded every night.
+
+The app's database user only needs `SELECT, INSERT, UPDATE, DELETE`. Schema changes happen only in `db:setup`.
+
+**Step-by-step guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Future improvements
 

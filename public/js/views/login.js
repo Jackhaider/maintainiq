@@ -33,12 +33,11 @@ export function renderLogin(root, onSuccess) {
             ${field('password', 'Password', '<input class="input" id="f-password" name="password" type="password" autocomplete="current-password" required>')}
             <button class="btn btn-primary" type="submit">Sign in</button>
           </form>
-          <div class="demo-box">
-            <strong>Demo accounts</strong> (password is shared with reviewers separately)
-            <div class="demo-actions">
-              <button class="btn btn-sm" data-demo="supervisor@maintainiq.demo">Supervisor</button>
-              <button class="btn btn-sm" data-demo="operator@maintainiq.demo">Operator · Press Shop</button>
-            </div>
+          <div class="demo-box hidden" id="demo-box">
+            <strong>Try the live demo</strong>
+            <p class="demo-note">Synthetic data, reset every night. Demo accounts and seeded records are protected; anything you create yourself can be edited or deleted.</p>
+            <div class="demo-actions" id="demo-actions"></div>
+            <p class="demo-password">Password for both: <code id="demo-password"></code></p>
           </div>
         </div>
 
@@ -66,13 +65,30 @@ export function renderLogin(root, onSuccess) {
     })
   );
 
-  // Demo buttons only fill the email; the password is never shipped in the frontend.
-  $$('[data-demo]', root).forEach((b) =>
-    b.addEventListener('click', () => {
-      $('#f-email').value = b.dataset.demo;
-      $('#f-password').focus();
+  // Public demo: the server only returns accounts and the (deliberately public) demo password when
+  // DEMO_MODE=true. Text is set with textContent, never as HTML.
+  api('/public/demo')
+    .then((res) => {
+      const demo = res.data;
+      if (!demo.enabled || !demo.password) return;
+      const actions = $('#demo-actions');
+      demo.accounts.forEach((account) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-sm';
+        b.textContent = `Sign in as ${account.label}`;
+        b.title = account.email;
+        b.addEventListener('click', () => {
+          $('#f-email').value = account.email;
+          $('#f-password').value = demo.password;
+          $('#login-form').requestSubmit();
+        });
+        actions.append(b);
+      });
+      $('#demo-password').textContent = demo.password;
+      $('#demo-box').classList.remove('hidden');
     })
-  );
+    .catch(() => {}); // no demo box if the request fails; normal sign-in still works
 
   const done = (res) => {
     session.save(res.data.token, res.data.user);

@@ -4,6 +4,7 @@ const { query } = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, validateIdParam } = require('../middleware/validate');
+const { protectDemoAccount, assertNotReservedEmail } = require('../middleware/demo');
 const { notFound, conflict, badRequest } = require('../utils/httpError');
 
 /* User management is supervisor-only. Users are deactivated, never deleted, so their history stays intact. */
@@ -60,6 +61,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const b = req.body;
     checkLineRule(b.role, b.productionLineId);
+    assertNotReservedEmail(b.email);
     const existing = await query('SELECT id FROM users WHERE email = ?', [b.email]);
     if (existing.length) throw conflict('An account with this email already exists');
 
@@ -85,6 +87,7 @@ router.patch(
     },
     { partial: true }
   ),
+  protectDemoAccount,
   asyncHandler(async (req, res) => {
     const current = (await query(`${SELECT_USER} WHERE u.id = ?`, [req.params.id]))[0];
     if (!current) throw notFound('User');
