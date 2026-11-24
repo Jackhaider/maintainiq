@@ -1,0 +1,45 @@
+# Nightly reset of the PUBLIC DEMO database: drops and recreates the MaintainIQ tables and reloads
+# the synthetic seed data, so every visitor starts from the same dataset.
+#
+# It does nothing until it is switched on: set the repository VARIABLE DEMO_RESET_ENABLED=true.
+# Required repository SECRETS: DEMO_DB_HOST, DEMO_DB_PORT, DEMO_DB_USER, DEMO_DB_PASSWORD, DEMO_DB_NAME
+# Required repository VARIABLE: DEMO_PASSWORD (public demo password, same value as on Render)
+# Secrets are passed only as environment variables and are never printed.
+name: Demo reset
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # 02:30 UTC every day (03:30 / 04:30 in Germany)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    if: vars.DEMO_RESET_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev
+      - name: Reset demo database to the seed dataset
+        env:
+          NODE_ENV: production
+          ALLOW_DB_RESET: 'true'
+          DB_SSL: 'true'
+          DB_HOST: ${{ secrets.DEMO_DB_HOST }}
+          DB_PORT: ${{ secrets.DEMO_DB_PORT }}
+          DB_USER: ${{ secrets.DEMO_DB_USER }}
+          DB_PASSWORD: ${{ secrets.DEMO_DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DEMO_DB_NAME }}
+          SEED_PASSWORD: ${{ vars.DEMO_PASSWORD }}
+        run: node scripts/db-setup.js
