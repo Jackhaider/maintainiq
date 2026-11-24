@@ -66,7 +66,7 @@ WITH RECURSIVE seq (n) AS (
               WHEN MOD(n, 3) = 0 THEN 8
               ELSE 1 + MOD(n * 7, 12) END                       AS machine_id,
          ELT(1 + MOD(n, 5), 'mechanical', 'electrical', 'material', 'changeover', 'other') AS reason,
-         TIMESTAMP(CURDATE() - INTERVAL (n * 2 - 1) DAY) + INTERVAL (6 + MOD(n * 5, 12)) HOUR AS started_at,
+         DATE_ADD(DATE_SUB(CAST(CURDATE() AS DATETIME), INTERVAL (n * 2 - 1) DAY), INTERVAL (6 + MOD(n * 5, 12)) HOUR) AS started_at,
          20 + MOD(n * 37, 220)                                   AS minutes
   FROM seq
 )
