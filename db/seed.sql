@@ -23,7 +23,7 @@ INSERT INTO users (id, role_id, production_line_id, full_name, email, password_h
   (6, 2, NULL, 'Vikram Rao',      'vikram.rao@maintainiq.demo', '!');
 
 INSERT INTO machines (id, production_line_id, asset_tag, name, machine_type, manufacturer, rated_power_kw, status, installed_on) VALUES
-  (1,  1, 'PRS-001', 'Hydraulic Press 400T',      'Hydraulic press',   'Kirloskar Hydraulics', 75.00, 'running',     '2019-04-12'),
+  (1,  1, 'PRS-001', 'Hydraulic Press 400T',      'Hydraulic press',   'Pashan Fluid Power',   75.00, 'running',     '2019-04-12'),
   (2,  1, 'PRS-002', 'Servo Press 250T',          'Servo press',       'Deccan Machine Works', 55.00, 'running',     '2021-08-03'),
   (3,  1, 'PRS-003', 'Blanking Line Feeder',      'Coil feeder',       'Sahyadri Automation',  22.00, 'maintenance', '2017-11-20'),
   (4,  2, 'CNC-101', '5-Axis Machining Centre',   'CNC mill',          'Precision Tools India',30.00, 'running',     '2020-02-17'),

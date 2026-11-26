@@ -6,7 +6,7 @@ A full-stack web app for a manufacturing plant: operators raise maintenance requ
 
 ![Supervisor dashboard](docs/screenshots/dashboard.png)
 
-> **Live demo:** not deployed yet (see [Deployment](#deployment)).
+> **Live demo:** [maintainiq-nty5.onrender.com](https://maintainiq-nty5.onrender.com) (free hosting: the first visit after a quiet spell can take about 30 seconds while the server wakes up; see [Deployment](#deployment)).
 >
 > **Demo accounts** (shown on the login page too). These are synthetic accounts in a sandbox that resets every night:
 >
